@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>룰렛 음료 내기!</title>
+  <!-- Google Fonts 구글 폰트 적용 -->
+  <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #ff7b93;
+      --secondary-color: #ffeb3b;
+      --bg-color: #fff9f9;
+      --card-bg: #ffffff;
+      --text-color: #4a4a4a;
+      --accent-color: #4ecdc4;
+      --edit-color: #ff9f43;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    /* 모바일 최적화 컨테이너 */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border-radius: 30px;
+      box-shadow: 0 15px 30px rgba(255, 123, 147, 0.15);
+      overflow: hidden;
+      border: 4px solid #ffe3e8;
+      position: relative;
+    }
+
+    /* 1. 헤더 (사진.jpg 배경 및 웰컴 메시지) */
+    .hero-header {
+      width: 100%;
+      height: 220px;
+      background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('사진.jpg');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .hero-header h1 {
+      font-family: 'Gamja Flower', cursive;
+      font-size: 2.2rem;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+      word-break: keep-all;
+      line-height: 1.3;
+      color: var(--secondary-color);
+    }
+
+    .hero-header p {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-top: 10px;
+      text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.8);
+      background: rgba(255, 123, 147, 0.8);
+      padding: 5px 15px;
+      border-radius: 20px;
+    }
+
+    /* 섹션 스타일 */
+    .section {
+      padding: 20px;
+      border-bottom: 2px dashed #ffe3e8;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 공통 폼 스타일 */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: #888;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ffd1d9;
+      border-radius: 15px;
+      font-size: 1rem;
+      outline: none;
+      transition: 0.3s;
+      background-color: #fffcfc;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 8px rgba(255, 123, 147, 0.2);
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 15px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.2s;
+      box-shadow: 0 5px 10px rgba(255, 123, 147, 0.3);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: var(--accent-color);
+      box-shadow: 0 5px 10px rgba(78, 205, 196, 0.3);
+    }
+
+    /* 관리자 권한 토글 버튼 */
+    .admin-toggle {
+      background: #f1f1f1;
+      color: #666;
+      text-align: center;
+      padding: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .admin-panel {
+      display: none;
+      background: #fff5f6;
+      border-radius: 15px;
+      padding: 15px;
+      margin-top: 10px;
+      border: 2px solid #ffd1d9;
+    }
+
+    .menu-item-row {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+
+    /* 마감 타이머 */
+    .timer-display {
+      background: #fff;
+      border: 2px solid var(--primary-color);
+      padding: 8px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    /* 룰렛 디자인 */
+    .roulette-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 20px auto;
+    }
+
+    /* 바늘 */
+    .roulette-pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 30px solid #ff3366;
+      z-index: 10;
+      filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.2));
+    }
+
+    #rouletteCanvas {
+      border-radius: 50%;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+      background: white;
+    }
+
+    /* 취합 테이블 */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    th {
+      background-color: #ffd1d9;
+      color: var(--text-color);
+      font-weight: 700;
+      padding: 10px 4px;
+    }
+
+    td {
+      padding: 10px 4px;
+      border-bottom: 1px solid #ffe3e8;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #fffcfc;
+    }
+
+    .total-row {
+      background-color: #ffe3e8 !important;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    /* 수정/삭제 아이콘 버튼 */
+    .action-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 5px;
+      transition: transform 0.1s;
+    }
+
+    .action-btn:active {
+      transform: scale(1.3);
+    }
+
+    /* 폭죽용 캔버스 */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* 당첨자 레이어 팝업 */
+    .winner-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .winner-content {
+      background: white;
+      padding: 30px;
+      border-radius: 25px;
+      text-align: center;
+      width: 85%;
+      max-width: 350px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border: 5px solid var(--secondary-color);
+      animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popUp {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .winner-name {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--primary-color);
+      margin: 15px 0;
+      font-family: 'Gamja Flower', cursive;
+    }
+
+    @media (max-width: 360px) {
+      .hero-header h1 { font-size: 1.8rem; }
+      .roulette-container { width: 240px; height: 240px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- 1. 헤더 (배경 이미지 및 웰컴 메시지) -->
+    <div class="hero-header">
+      <h1>음료를 주문해주세요.<br>룰렛 당첨자가 쏩니다! ☕️</h1>
+      <p>오늘의 행운아(피해자)는 누구?</p>
+    </div>
+
+    <!-- 관리자 모드 토글 -->
+    <div class="admin-toggle" onclick="toggleAdminPanel()">⚙️ 관리자 설정 열기/닫기</div>
+    
+    <!-- 3. 관리자 권한 섹션 -->
+    <div class="admin-panel" id="adminPanel">
+      <div class="section-title">🛠️ 관리자 설정</div>
+      
+      <div class="form-group">
+        <label>⏱️ 주문 마감 시간 설정</label>
+        <input type="time" id="deadlineTime" onchange="setDeadline()">
+      </div>
+
+      <div class="form-group">
+        <label>➕ 신규 메뉴 추가</label>
+        <div class="menu-item-row">
+          <input type="text" id="newMenuName" placeholder="메뉴명 (예: 자몽에이드)">
+          <input type="number" id="newMenuPrice" placeholder="가격 (원)" style="width: 120px;">
+        </div>
+        <button class="btn btn-secondary" onclick="addNewMenu()" style="padding: 8px; font-size: 0.9rem;">메뉴 추가</button>
+      </div>
+
+      <div class="form-group" style="margin-top: 15px;">
+        <label>📋 등록된 메뉴 목록 (가격 수정 가능)</label>
+        <div id="adminMenuList"></div>
+      </div>
+    </div>
+
+    <!-- 주문 마감 시간 표시기 -->
+    <div class="section" style="padding-bottom: 0;">
+      <div class="timer-display" id="timerDisplay">⏳ 주문 진행 중... 원하시는 음료를 담아주세요!</div>
+    </div>
+
+    <!-- 4. 주문자 입력 섹션 -->
+    <div class="section" id="orderFormSection">
+      <div class="section-title" id="formTitle">✏️ 음료 주문하기</div>
+      
+      <div class="form-group">
+        <label>주문자 이름</label>
+        <input type="text" id="ordererName" placeholder="이름을 입력해 주세요">
+      </div>
+
+      <div class="form-group">
+        <label>음료 선택</label>
+        <select id="drinkSelect"></select>
+      </div>
+
+      <div class="form-group">
+        <label>수량</label>
+        <select id="drinkQty">
+          <option value="1">1개</option>
+          <option value="2">2개</option>
+          <option value="3">3개</option>
+          <option value="4">4개</option>
+          <option value="5">5개</option>
+        </select>
+      </div>
+
+      <!-- 수정모드 대응을 위한 버튼 구조 변경 -->
+      <div style="display: flex; gap: 8px;">
+        <button class="btn" id="submitBtn" onclick="submitOrder()" style="flex: 1;">주문 추가하기 🥳</button>
+        <button class="btn" id="cancelEditBtn" onclick="cancelEdit()" style="display: none; background: #a4b0be; box-shadow: 0 5px 10px rgba(164,176,190,0.3); width: 80px;">취소</button>
+      </div>
+    </div>
+
+    <!-- 6. 주문 현황 및 취합 테이블 (수정/삭제 액션 컬럼 추가) -->
+    <div class="section">
+      <div class="section-title">📊 실시간 주문 현황</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>주문자</th>
+              <th>음료</th>
+              <th>단가</th>
+              <th>수량</th>
+              <th>금액</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody">
+            <!-- 주문 데이터 동적 삽입 -->
+          </tbody>
+          <tfoot>
+            <tr class="total-row" id="totalRow">
+              <td colspan="3">합계</td>
+              <td id="totalQty">0</td>
+              <td id="totalAmount" colspan="2">0원</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- 룰렛 섹션 -->
+    <div class="section" style="text-align: center;">
+      <div class="section-title">🎯 룰렛 돌리기</div>
+      <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">주문자들이 자동으로 룰렛에 등록됩니다.</p>
+      
+      <div class="roulette-container">
+        <div class="roulette-pointer"></div>
+        <canvas id="rouletteCanvas" width="280" height="280"></canvas>
+      </div>
+
+      <button class="btn btn-secondary" id="spinBtn" onclick="startRoulette()" style="font-size: 1.2rem; background: #ff9f43; box-shadow: 0 5px 10px rgba(255, 159, 67, 0.4);">
+        🎰 룰렛 돌리기 (추첨!)
+      </button>
+    </div>
+
+  </div>
+
+  <!-- 당첨 팝업 모달 -->
+  <div class="winner-modal" id="winnerModal">
+    <div class="winner-content">
+      <h2>🎉 축하합니다! 🎉</h2>
+      <p style="margin-top: 10px; font-weight: bold;">오늘 음료를 쏘실 행운의 주인공은?!</p>
+      <div class="winner-name" id="winnerNameDisplay">홍길동</div>
+      <p id="winnerTotalPay" style="font-weight: bold; color: #666;"></p>
+      <button class="btn" onclick="closeWinnerModal()" style="margin-top: 15px;">확인 완료!</button>
+    </div>
+  </div>
+
+  <!-- 폭죽용 캔버스 -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <script>
+    // --- 1. 초기 데이터 설정 ---
+    let menus = [
+      { id: 1, name: "아이스 아메리카노", price: 4500 },
+      { id: 2, name: "아이스 라떼", price: 5000 },
+      { id: 3, name: "따뜻한 아메리카노", price: 4000 },
+      { id: 4, name: "따뜻한 라떼", price: 4500 }
+    ];
+
+    let orders = [];
+    let deadline = null;
+    let timerInterval = null;
+    let editingOrderId = null; // 수정 중인 주문 ID를 추적하기 위한 변수
+
+    // --- 2. 초기 로드 및 UI 랜더링 ---
+    window.onload = function() {
+      renderMenuOptions();
+      renderAdminMenuList();
+      renderOrders();
+      drawRouletteWheel();
+    };
+
+    function toggleAdminPanel() {
+      const panel = document.getElementById('adminPanel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // 주문자용 음료 셀렉트 박스 갱신
+    function renderMenuOptions() {
+      const select = document.getElementById('drinkSelect');
+      select.innerHTML = '';
+      menus.forEach(menu => {
+        const option = document.createElement('option');
+        option.value = menu.id;
+        option.textContent = `${menu.name} (${menu.price.toLocaleString()}원)`;
+        select.appendChild(option);
+      });
+    }
+
+    // 관리자 메뉴 목록 갱신
+    function renderAdminMenuList() {
+      const container = document.getElementById('adminMenuList');
+      container.innerHTML = '';
+      menus.forEach((menu, index) => {
+        const div = document.createElement('div');
+        div.className = 'menu-item-row';
+        div.innerHTML = `
+          <input type="text" value="${menu.name}" onchange="updateMenuName(${menu.id}, this.value)" style="flex:2; padding: 6px 10px;">
+          <input type="number" value="${menu.price}" onchange="updateMenuPrice(${menu.id}, this.value)" style="flex:1; padding: 6px 10px;">
+          <button class="btn btn-secondary" onclick="deleteMenu(${menu.id})" style="width:50px; padding:6px; background:#ff4757;">삭제</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // --- 3. 메뉴 수정/추가/삭제 로직 ---
+    function addNewMenu() {
+      const nameInput = document.getElementById('newMenuName');
+      const priceInput = document.getElementById('newMenuPrice');
+      const name = nameInput.value.trim();
+      const price = parseInt(priceInput.value);
+
+      if(!name || isNaN(price)) {
+        alert('올바른 메뉴명과 가격을 입력해 주세요.');
+        return;
+      }
+
+      const newId = menus.length > 0 ? Math.max(...menus.map(m => m.id)) + 1 : 1;
+      menus.push({ id: newId, name, price });
+      nameInput.value = '';
+      priceInput.value = '';
+      
+      renderMenuOptions();
+      renderAdminMenuList();
+    }
+
+    function updateMenuName(id, newName) {
+      const menu = menus.find(m => m.id === id);
+      if(menu) menu.name = newName;
+      renderMenuOptions();
+    }
+
+    function updateMenuPrice(id, newPrice) {
+      const menu = menus.find(m => m.id === id);
+      if(menu) menu.price = parseInt(newPrice) || 0;
+      renderMenuOptions();
+      renderOrders(); // 주문 내역 금액도 자동 갱신
+    }
+
+    function deleteMenu(id) {
+      menus = menus.filter(m => m.id !== id);
+      renderMenuOptions();
+      renderAdminMenuList();
+    }
+
+    // --- 4. 마감 시간 설정 및 타이머 ---
+    function setDeadline() {
+      const timeVal = document.getElementById('deadlineTime').value;
+      if(!timeVal) return;
+
+      const now = new Date();
+      const [hours, minutes] = timeVal.split(':');
+      deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+      if (deadline < now) {
+        deadline.setDate(deadline.getDate() + 1); // 이미 지난 시간이면 내일로 설정
+      }
+
+      if(timerInterval) clearInterval(timerInterval);
+      
+      timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+    }
+
+    function updateTimer() {
+      if(!deadline) return;
+      const now = new Date();
+      const diff = deadline - now;
+      const display = document.getElementById('timerDisplay');
+
+      if (diff <= 0) {
+        clearInterval(timerInterval);
+        display.innerHTML = "🚨 주문이 마감되었습니다! 룰렛을 돌려주세요!";
+        display.style.background = "#ff4757";
+        display.style.color = "#fff";
+        return;
+      }
+
+      const mins = Math.floor(diff / 1000 / 60);
+      const secs = Math.floor((diff / 1000) % 60);
+      display.innerHTML = `⏱️ 마감까지 남은 시간: <strong>${mins}분 ${secs}초</strong>`;
+      display.style.background = "#fff9db";
+      display.style.color = "#f59f00";
+    }
+
+    // --- 5. 주문 등록 및 요약 테이블 처리 ---
+    function submitOrder() {
+      // 마감 체크
+      if (deadline && new Date() > deadline) {
+        alert("주문이 이미 마감되었습니다!");
+        return;
+      }
+
+      const nameInput = document.getElementById('ordererName');
+      const drinkSelect = document.getElementById('drinkSelect');
+      const qtySelect = document.getElementById('drinkQty');
+
+      const name = nameInput.value.trim();
+      const menuId = parseInt(drinkSelect.value);
+      const qty = parseInt(qtySelect.value);
+
+      if(!name) {
+        alert('주문자 이름을 입력해주세요!');
+        return;
+      }
+
+      const menu = menus.find(m => m.id === menuId);
+      if(!menu) return;
+
+      if (editingOrderId !== null) {
+        // [수정 모드] 기존 주문 데이터 변경
+        const orderIndex = orders.findIndex(o => o.id === editingOrderId);
+        if (orderIndex !== -1) {
+          orders[orderIndex].name = name;
+          orders[orderIndex].drinkId = menuId;
+          orders[orderIndex].qty = qty;
+        }
+        cancelEdit(); // 입력폼 초기화 및 일반 모드로 복구
+      } else {
+        // [추가 모드] 동일인 중복 주문 시 누적합산, 신규는 푸시
+        const existingOrder = orders.find(o => o.name === name && o.drinkId === menuId);
+        if(existingOrder) {
+          existingOrder.qty += qty;
+        } else {
+          orders.push({
+            id: Date.now(),
+            name,
+            drinkId: menu.id,
+            qty: qty
+          });
+        }
+      }
+
+      nameInput.value = '';
+      renderOrders();
+      drawRouletteWheel(); // 룰렛 대상 업데이트
+    }
+
+    // --- 5-1. 주문 수정/삭제 동작 함수 ---
+    function startEditOrder(id) {
+      const order = orders.find(o => o.id === id);
+      if(!order) return;
+
+      editingOrderId = id;
+
+      // 1. 입력 폼에 기존 정보 세팅
+      document.getElementById('ordererName').value = order.name;
+      document.getElementById('drinkSelect').value = order.drinkId;
+      document.getElementById('drinkQty').value = order.qty;
+
+      // 2. UI 스타일을 수정모드로 전환
+      document.getElementById('formTitle').textContent = "✏️ 주문 수정하기";
+      document.getElementById('submitBtn').textContent = "주문 수정 완료 💾";
+      document.getElementById('submitBtn').style.background = "var(--edit-color)";
+      document.getElementById('cancelEditBtn').style.display = "block";
+
+      // 3. 입력창으로 부드럽게 스크롤 이동
+      document.getElementById('orderFormSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+      editingOrderId = null;
+
+      // 1. 입력 폼 초기화
+      document.getElementById('ordererName').value = '';
+      document.getElementById('drinkSelect').selectedIndex = 0;
+      document.getElementById('drinkQty').value = '1';
+
+      // 2. UI 스타일 복구
+      document.getElementById('formTitle').textContent = "✏️ 음료 주문하기";
+      document.getElementById('submitBtn').textContent = "주문 추가하기 🥳";
+      document.getElementById('submitBtn').style.background = "var(--primary-color)";
+      document.getElementById('cancelEditBtn').style.display = "none";
+    }
+
+    function deleteOrder(id) {
+      if(confirm("해당 주문을 삭제하시겠습니까?")) {
+        orders = orders.filter(o => o.id !== id);
+        // 만약 삭제하려는 대상을 수정하고 있던 중이었다면 수정모드 취소
+        if (editingOrderId === id) {
+          cancelEdit();
+        }
+        renderOrders();
+        drawRouletteWheel();
+      }
+    }
+
+    // 주문 리스트 테이블 렌더링
+    function renderOrders() {
+      const tbody = document.getElementById('orderTableBody');
+      tbody.innerHTML = '';
+
+      let totalQty = 0;
+      let totalAmt = 0;
+
+      orders.forEach(order => {
+        const menu = menus.find(m => m.id === order.drinkId) || { name: '삭제된 메뉴', price: 0 };
+        const sumPrice = menu.price * order.qty;
+
+        totalQty += order.qty;
+        totalAmt += sumPrice;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${order.name}</strong></td>
+          <td>${menu.name}</td>
+          <td>${menu.price.toLocaleString()}원</td>
+          <td>${order.qty}</td>
+          <td><strong>${sumPrice.toLocaleString()}원</strong></td>
+          <td>
+            <button class="action-btn" onclick="startEditOrder(${order.id})" title="수정">✏️</button>
+            <button class="action-btn" onclick="deleteOrder(${order.id})" title="삭제">❌</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('totalQty').textContent = totalQty;
+      document.getElementById('totalAmount').textContent = totalAmt.toLocaleString() + '원';
+      
+      // 전역 총합 변수로 저장 (팝업 노출용)
+      window.totalAmountPay = totalAmt;
+    }
+
+    // --- 6. 룰렛 정밀 드로잉 및 회전 로직 (바늘-당첨자 100% 매칭) ---
+    const canvas = document.getElementById('rouletteCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentAngle = 0; 
+    let isSpinning = false;
+
+    // 디폴트 룰렛 참가자 (주문이 없을 경우 표시)
+    const defaultParticipants = ["김대리", "이과장", "박부장", "최사원"];
+
+    function getParticipants() {
+      // 주문 목록에서 고유한 주문자 이름 추출
+      const uniqueNames = [...new Set(orders.map(o => o.name))];
+      return uniqueNames.length > 0 ? uniqueNames : defaultParticipants;
+    }
+
+    const colors = ["#ff7b93", "#ffbe0b", "#ff006e", "#8338ec", "#3a86ff", "#06d6a0", "#118ab2", "#ffd166"];
+
+    function drawRouletteWheel() {
+      const members = getParticipants();
+      const numSegments = members.length;
+      const anglePerSegment = (2 * Math.PI) / numSegments;
+      const radius = canvas.width / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 원판 베이스 그리기
+      ctx.save();
+      ctx.translate(radius, radius);
+      ctx.rotate(currentAngle);
+
+      for (let i = 0; i < numSegments; i++) {
+        const startAng = i * anglePerSegment;
+        const endAng = startAng + anglePerSegment;
+
+        // 부채꼴 조각 그리기
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 10, startAng, endAng);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // 텍스트 그리기 (가독성 높은 두꺼운 폰트)
+        ctx.save();
+        ctx.rotate(startAng + anglePerSegment / 2);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 16px 'Noto Sans KR'";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(members[i], radius - 30, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // 테두리 링 데코레이션
+      ctx.beginPath();
+      ctx.arc(radius, radius, radius - 5, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#ffd1d9';
+      ctx.lineWidth = 10;
+      ctx.stroke();
+    }
+
+    function startRoulette() {
+      if (isSpinning) return;
+      if (orders.length === 0) {
+        alert("실제 주문자가 한 명 이상 있어야 내기 룰렛을 돌릴 수 있습니다!");
+        return;
+      }
+
+      const members = getParticipants();
+      const numSegments = members.length;
+      
+      // 1. 당첨자 랜덤 선정
+      const winnerIndex = Math.floor(Math.random() * numSegments);
+      const winnerName = members[winnerIndex];
+
+      // 2. 바늘이 완벽히 가리키도록 정밀 각도 계산
+      // 바늘은 12시 방향(즉, -Math.PI / 2 라디안 위치)에 고정되어 있음.
+      const segmentAngle = (2 * Math.PI) / numSegments;
+      const targetSegmentCenter = (winnerIndex + 0.5) * segmentAngle;
+      
+      // 12시 방향에 조각 중심이 오도록 하는 목표 회전각 구하기
+      const baseStopAngle = (1.5 * Math.PI) - targetSegmentCenter;
+
+      // 최소 5바퀴(10*PI) 이상 회전 후 멈추게 함
+      const extraSpins = 6 * 2 * Math.PI; 
+      const finalAngle = baseStopAngle + extraSpins;
+
+      // 애니메이션 변수 설정
+      let startTimestamp = null;
+      const duration = 4500; // 4.5초 동안 회전
+      const initialAngle = currentAngle % (2 * Math.PI); // 각도 오버플로우 방지
+
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+
+      function animate(timestamp) {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = timestamp - startTimestamp;
+        const percent = Math.min(progress / duration, 1);
+
+        // Ease-out Cubic 감속 곡선 적용 (부드럽게 멈춤)
+        const easeOut = 1 - Math.pow(1 - percent, 3);
+        currentAngle = initialAngle + easeOut * (finalAngle - initialAngle);
+
+        drawRouletteWheel();
+
+        if (percent < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // 정지 완료
+          isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          
+          // 최종 결과 매칭 보정
+          currentAngle = baseStopAngle;
+          drawRouletteWheel();
+
+          showWinner(winnerName);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // --- 7. 당첨자 발표 및 폭죽 이펙트 ---
+    function showWinner(name) {
+      document.getElementById('winnerNameDisplay').textContent = name;
+      document.getElementById('winnerTotalPay').textContent = `결제할 총 금액: ${window.totalAmountPay.toLocaleString()}원`;
+      document.getElementById('winnerModal').style.display = 'flex';
+      
+      startConfetti();
+    }
+
+    function closeWinnerModal() {
+      document.getElementById('winnerModal').style.display = 'none';
+      stopConfetti();
+    }
+
+    // --- 8. 폭죽(Confetti) 효과 스크립트 ---
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiActive = false;
+    let confettiParticles = [];
+
+    function resizeConfettiCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+
+    class ConfettiParticle {
+      constructor() {
+        this.x = Math.random() * confettiCanvas.width;
+        this.y = Math.random() * confettiCanvas.height - confettiCanvas.height;
+        this.size = Math.random() * 8 + 6;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        this.speedX = Math.random() * 4 - 2;
+        this.speedY = Math.random() * 5 + 4;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 4 - 2;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotationSpeed;
+        if (this.y > confettiCanvas.height) {
+          this.y = -20;
+          this.x = Math.random() * confettiCanvas.width;
+        }
+      }
+      draw() {
+        confettiCtx.save();
+        confettiCtx.translate(this.x, this.y);
+        confettiCtx.rotate((this.rotation * Math.PI) / 180);
+        confettiCtx.fillStyle = this.color;
+        confettiCtx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        confettiCtx.restore();
+      }
+    }
+
+    function startConfetti() {
+      resizeConfettiCanvas();
+      window.addEventListener('resize', resizeConfettiCanvas);
+      confettiActive = true;
+      confettiParticles = [];
+      for (let i = 0; i < 150; i++) {
+        confettiParticles.push(new ConfettiParticle());
+      }
+      animateConfetti();
+    }
+
+    function stopConfetti() {
+      confettiActive = false;
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      window.removeEventListener('resize', resizeConfettiCanvas);
+    }
+
+    function animateConfetti() {
+      if (!confettiActive) return;
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      confettiParticles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateConfetti);
+    }
+  </script>
+</body>
+</html>
