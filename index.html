@@ -453,6 +453,7 @@
         document.getElementById('timerDisplay').style.color = "var(--primary-color)";
         if(timerInterval) clearInterval(timerInterval);
       }
+      updateOrderFormState();
     });
 
     // --- UI 랜더링 함수들 ---
@@ -469,7 +470,7 @@
 
     function checkAdminAccess() {
       const password = document.getElementById('adminPassword').value;
-      const correctPassword = 'admin1234';
+      const correctPassword = '3040';
 
       if (password === correctPassword) {
         document.getElementById('adminAuthBox').style.display = 'none';
@@ -505,12 +506,54 @@
       });
     }
 
+    function isOrderClosed() {
+      if (!deadlineStr) return false;
+      const now = new Date();
+      const deadline = new Date(deadlineStr);
+      if (isNaN(deadline.getTime())) return false;
+      return now >= deadline;
+    }
+
+    function updateOrderFormState() {
+      const isClosed = isOrderClosed();
+      const nameInput = document.getElementById('ordererName');
+      const drinkSelect = document.getElementById('drinkSelect');
+      const qtySelect = document.getElementById('drinkQty');
+      const submitBtn = document.getElementById('submitBtn');
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+      nameInput.disabled = isClosed;
+      drinkSelect.disabled = isClosed;
+      qtySelect.disabled = isClosed;
+      submitBtn.disabled = isClosed;
+      cancelEditBtn.disabled = isClosed;
+
+      if (isClosed) {
+        if (editingOrderId !== null) {
+          cancelEdit();
+        }
+        submitBtn.textContent = "주문 마감";
+        submitBtn.style.background = "#95a5a6";
+        submitBtn.style.boxShadow = "none";
+        cancelEditBtn.style.display = "none";
+      } else if (editingOrderId !== null) {
+        submitBtn.textContent = "주문 수정 완료 💾";
+        submitBtn.style.background = "var(--edit-color)";
+        submitBtn.style.boxShadow = "0 5px 10px rgba(255, 159, 67, 0.3)";
+      } else {
+        submitBtn.textContent = "주문 추가하기 🥳";
+        submitBtn.style.background = "var(--primary-color)";
+        submitBtn.style.boxShadow = "0 5px 10px rgba(255, 123, 147, 0.3)";
+      }
+    }
+
     function renderOrders() {
       const tbody = document.getElementById('orderTableBody');
       tbody.innerHTML = '';
 
       let totalQty = 0;
       let totalAmt = 0;
+      const isClosed = isOrderClosed();
 
       orders.forEach(order => {
         const menu = menus.find(m => m.id === parseInt(order.drinkId)) || { name: '삭제된 메뉴', price: 0 };
@@ -527,8 +570,8 @@
           <td>${order.qty}</td>
           <td><strong>${sumPrice.toLocaleString()}원</strong></td>
           <td>
-            <button class="action-btn" onclick="startEditOrder('${order.id}')" title="수정">✏️</button>
-            <button class="action-btn" onclick="deleteOrder('${order.id}')" title="삭제">❌</button>
+            ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 수정 불가">✏️</button>' : `<button class="action-btn" onclick="startEditOrder('${order.id}')" title="수정">✏️</button>`}
+            ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 삭제 불가">❌</button>' : `<button class="action-btn" onclick="deleteOrder('${order.id}')" title="삭제">❌</button>`}
           </td>
         `;
         tbody.appendChild(tr);
@@ -536,6 +579,7 @@
 
       document.getElementById('totalQty').textContent = totalQty;
       document.getElementById('totalAmount').textContent = totalAmt.toLocaleString() + '원';
+      updateOrderFormState();
     }
 
 
@@ -622,14 +666,9 @@
     // --- 주문 등록 및 수정/삭제 DB 반영 ---
 
     function submitOrder() {
-      // 마감 체크
-      if (deadlineStr) {
-        const now = new Date();
-        const deadline = new Date(deadlineStr);
-        if (isNaN(deadline.getTime()) || now > deadline) {
-          alert("주문이 이미 마감되었습니다!");
-          return;
-        }
+      if (isOrderClosed()) {
+        alert("주문 마감 시간이 지나 주문 변경이 불가능합니다.");
+        return;
       }
 
       const nameInput = document.getElementById('ordererName');
@@ -674,6 +713,11 @@
     }
 
     function startEditOrder(id) {
+      if (isOrderClosed()) {
+        alert("주문 마감 시간이 지나 주문 수정이 불가능합니다.");
+        return;
+      }
+
       const order = orders.find(o => o.id === id);
       if(!order) return;
 
@@ -704,6 +748,11 @@
     }
 
     function deleteOrder(id) {
+      if (isOrderClosed()) {
+        alert("주문 마감 시간이 지나 주문 삭제가 불가능합니다.");
+        return;
+      }
+
       if(confirm("해당 주문을 삭제하시겠습니까?")) {
         remove(ref(db, `orders/${id}`));
         if (editingOrderId === id) {
