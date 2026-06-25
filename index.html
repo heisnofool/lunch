@@ -382,19 +382,26 @@
 
     // ----------------- [ 중요! 여기에 복사한 Firebase 설정을 붙여넣으세요 ] -----------------
     const firebaseConfig = {
-      apiKey: "AIzaSyBExGF7F33BWyeH3g8D-KUhCdPS2o7gaA4",
-      authDomain: "coffee-lottery-36117.firebaseapp.com",
-      databaseURL: "https://coffee-lottery-36117-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "coffee-lottery-36117",
-      storageBucket: "coffee-lottery-36117.firebasestorage.app",
-      messagingSenderId: "347979859384",
-      appId: "1:347979859384:web:49a2d33a2e8cd22b12bb4d"
+      apiKey: "AIzaSyBusyoLc5Tg1J5XsTXYUBUytbD2ZlPQfro",
+      authDomain: "kl3040-lunch.firebaseapp.com",
+      databaseURL: "https://kl3040-lunch-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "kl3040-lunch",
+      storageBucket: "kl3040-lunch.firebasestorage.app",
+      messagingSenderId: "25628257685",
+      appId: "1:25628257685:web:5e71c24fdded2d0da05a9c",
+      measurementId: "G-BNF4JKKYSG"
     };
     // ----------------------------------------------------------------------------------
 
     // Firebase 초기화
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+
+    // 같은 Firebase 프로젝트를 써도 서로 다른 데이터 경로를 사용하도록 분리
+    const appNamespace = (window.__APP_NAMESPACE__ || new URLSearchParams(window.location.search).get('ns') || 'coffeelottery-dev').trim();
+    function dbPath(...segments) {
+      return [appNamespace, ...segments].filter(Boolean).join('/');
+    }
 
     // --- 앱 상태 전역 변수 ---
     let menus = [];
@@ -406,7 +413,7 @@
     // --- 데이터 실시간 동기화 (Firebase -> Client) ---
 
     // 1. 메뉴 목록 실시간 감지 및 최초 초기화
-    const menusRef = ref(db, 'menus');
+    const menusRef = ref(db, dbPath('menus'));
     onValue(menusRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) {
@@ -428,7 +435,7 @@
     });
 
     // 2. 주문 내역 실시간 감지
-    const ordersRef = ref(db, 'orders');
+    const ordersRef = ref(db, dbPath('orders'));
     onValue(ordersRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -440,7 +447,7 @@
     });
 
     // 3. 마감 시간 실시간 감지
-    const deadlineRef = ref(db, 'deadline');
+    const deadlineRef = ref(db, dbPath('deadline'));
     onValue(deadlineRef, (snapshot) => {
       deadlineStr = snapshot.val();
       if (deadlineStr) {
@@ -597,23 +604,23 @@
       }
 
       const newId = menus.length > 0 ? Math.max(...menus.map(m => m.id)) + 1 : 1;
-      set(ref(db, `menus/${newId}`), { id: newId, name, price });
+      set(ref(db, dbPath('menus', String(newId))), { id: newId, name, price });
 
       nameInput.value = '';
       priceInput.value = '';
     }
 
     function updateMenuName(id, newName) {
-      update(ref(db, `menus/${id}`), { name: newName });
+      update(ref(db, dbPath('menus', String(id))), { name: newName });
     }
 
     function updateMenuPrice(id, newPrice) {
       const price = parseInt(newPrice) || 0;
-      update(ref(db, `menus/${id}`), { price: price });
+      update(ref(db, dbPath('menus', String(id))), { price: price });
     }
 
     function deleteMenu(id) {
-      remove(ref(db, `menus/${id}`));
+      remove(ref(db, dbPath('menus', String(id))));
     }
 
 
@@ -621,7 +628,7 @@
 
     function setDeadline() {
       const timeVal = document.getElementById('deadlineTime').value;
-      set(ref(db, 'deadline'), timeVal);
+      set(ref(db, dbPath('deadline')), timeVal);
     }
 
     function startTimer() {
@@ -686,7 +693,7 @@
 
       if (editingOrderId !== null) {
         // [수정 모드] 기존 DB 데이터 업데이트
-        update(ref(db, `orders/${editingOrderId}`), {
+        update(ref(db, dbPath('orders', String(editingOrderId))), {
           name: name,
           drinkId: menuId,
           qty: qty
@@ -696,11 +703,11 @@
         // [추가 모드] 동일 주문자+동일 메뉴가 있다면 합산, 아니면 새로 push
         const existingOrder = orders.find(o => o.name === name && o.drinkId === menuId);
         if(existingOrder) {
-          update(ref(db, `orders/${existingOrder.id}`), {
+          update(ref(db, dbPath('orders', String(existingOrder.id))), {
             qty: existingOrder.qty + qty
           });
         } else {
-          const newOrderRef = push(ref(db, 'orders'));
+          const newOrderRef = push(ref(db, dbPath('orders')));
           set(newOrderRef, {
             name,
             drinkId: menuId,
@@ -754,7 +761,7 @@
       }
 
       if(confirm("해당 주문을 삭제하시겠습니까?")) {
-        remove(ref(db, `orders/${id}`));
+        remove(ref(db, dbPath('orders', String(id))));
         if (editingOrderId === id) {
           cancelEdit();
         }
@@ -771,9 +778,9 @@
           4: { id: 4, name: "왕치킨마요", price: 5600 }
         };
 
-        set(ref(db, 'menus'), defaultMenus);
-        remove(ref(db, 'orders'));
-        remove(ref(db, 'deadline'));
+        set(ref(db, dbPath('menus')), defaultMenus);
+        remove(ref(db, dbPath('orders')));
+        remove(ref(db, dbPath('deadline')));
         alert("기본 메뉴와 데이터가 초기화되었습니다!");
       }
     }
