@@ -548,6 +548,17 @@
       color: var(--primary-color);
     }
 
+    .group-summary-row {
+      background-color: #fff7fa !important;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .group-summary-row td:first-child {
+      text-align: left;
+      padding-left: 12px;
+    }
+
     /* 수정/삭제 아이콘 버튼 */
     .action-btn {
       border: none;
@@ -1012,9 +1023,10 @@
       let totalAmt = 0;
       const isClosed = isOrderClosed();
       const aggMap = new Map();
+      const groupedOrders = new Map();
 
       orders.forEach(order => {
-        const menu = menus.find(m => m.id === parseInt(order.drinkId)) || { name: '삭제된 메뉴', price: 0 };
+        const menu = menus.find(m => m.id === parseInt(order.drinkId, 10)) || { name: '삭제된 메뉴', price: 0 };
         const sumPrice = menu.price * order.qty;
 
         totalQty += order.qty;
@@ -1028,19 +1040,44 @@
         aggItem.qty += order.qty;
         aggItem.amount += sumPrice;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${order.name}</strong></td>
-          <td>${menu.name}</td>
-          <td>${menu.price.toLocaleString()}원</td>
-          <td>${order.qty}</td>
-          <td><strong>${sumPrice.toLocaleString()}원</strong></td>
-          <td>
-            ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 수정 불가">✏️</button>' : `<button class="action-btn" onclick="startEditOrder('${order.id}')" title="수정">✏️</button>`}
-            ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 삭제 불가">❌</button>' : `<button class="action-btn" onclick="deleteOrder('${order.id}')" title="삭제">❌</button>`}
-          </td>
-        `;
-        tbody.appendChild(tr);
+        const groupKey = (order.name || '').trim().toLowerCase();
+        if (!groupedOrders.has(groupKey)) {
+          groupedOrders.set(groupKey, { name: order.name, entries: [] });
+        }
+        groupedOrders.get(groupKey).entries.push({ order, menu, sumPrice });
+      });
+
+      groupedOrders.forEach((group) => {
+        group.entries.forEach(({ order, menu, sumPrice }) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${order.name}</strong></td>
+            <td>${menu.name}</td>
+            <td>${menu.price.toLocaleString()}원</td>
+            <td>${order.qty}</td>
+            <td><strong>${sumPrice.toLocaleString()}원</strong></td>
+            <td>
+              ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 수정 불가">✏️</button>' : `<button class="action-btn" onclick="startEditOrder('${order.id}')" title="수정">✏️</button>`}
+              ${isClosed ? '<button class="action-btn" disabled title="주문 마감으로 삭제 불가">❌</button>' : `<button class="action-btn" onclick="deleteOrder('${order.id}')" title="삭제">❌</button>`}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        if (group.entries.length > 1) {
+          const totalGroupQty = group.entries.reduce((sum, item) => sum + item.order.qty, 0);
+          const totalGroupAmount = group.entries.reduce((sum, item) => sum + item.sumPrice, 0);
+          const summaryRow = document.createElement('tr');
+          summaryRow.className = 'group-summary-row';
+          summaryRow.innerHTML = `
+            <td>${group.name}</td>
+            <td colspan="2">합계</td>
+            <td>${totalGroupQty}</td>
+            <td><strong>${totalGroupAmount.toLocaleString()}원</strong></td>
+            <td></td>
+          `;
+          tbody.appendChild(summaryRow);
+        }
       });
 
       document.getElementById('totalQty').textContent = totalQty;
