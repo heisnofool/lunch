@@ -81,6 +81,96 @@
       border-radius: 20px;
     }
 
+    .account-copy {
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--primary-color);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid rgba(255, 123, 147, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .account-copy:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(255, 123, 147, 0.18);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(74, 74, 74, 0.95);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .aggregation-card {
+      border: 1px solid #ffe3e8;
+      border-radius: 16px;
+      background: #fffdfd;
+      overflow: hidden;
+    }
+
+    .aggregation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: linear-gradient(90deg, #fff4f6, #fffdfd);
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .aggregation-body {
+      display: none;
+      padding: 10px 12px 12px;
+    }
+
+    .aggregation-body.open {
+      display: block;
+    }
+
+    .aggregation-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .aggregation-table th {
+      background: #ffe3e8;
+      color: var(--text-color);
+      padding: 8px 6px;
+    }
+
+    .aggregation-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #f8e4e8;
+    }
+
+    .aggregation-table tfoot td {
+      background: #fff4f6;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
     /* 섹션 스타일 */
     .section {
       padding: 20px;
@@ -189,21 +279,43 @@
       gap: 8px;
       margin-bottom: 8px;
       align-items: center;
+      padding: 10px;
+      border: 1px solid #ffe3e8;
+      border-radius: 14px;
+      background: #fffdfd;
     }
 
-    .order-item-row .menu-select,
-    .order-item-row .menu-qty {
+    .order-item-row .menu-label {
       flex: 1;
+      font-weight: 700;
+      color: var(--text-color);
     }
 
-    .remove-item-btn {
-      width: 44px;
-      padding: 10px 0;
-      font-size: 0.95rem;
-      border-radius: 12px;
-      background: #f1f2f6;
-      color: #666;
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .qty-btn {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
       box-shadow: none;
+      padding: 0;
+    }
+
+    .qty-value {
+      min-width: 24px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--primary-color);
     }
 
     /* 마감 타이머 */
@@ -292,6 +404,7 @@
     <div class="hero-header">
       <h1>메뉴를 선택해주세요.<br>늘 기대가 가득한 애찬! ☕️</h1>
       <p>미리 정산하면 픽업이 빨라요~</p>
+      <div class="account-copy" onclick="copyAccountNumber()" title="클릭하면 계좌번호가 복사됩니다">카카오 3333-09-3143695 김성현</div>
     </div>
 
     <!-- 관리자 모드 토글 -->
@@ -325,6 +438,37 @@
         <label>📋 등록된 메뉴 목록 (가격 수정 가능)</label>
         <div id="adminMenuList"></div>
       </div>
+
+      <div class="form-group" style="margin-top: 15px;">
+        <label>📦 주문 집계 현황</label>
+        <div class="aggregation-card">
+          <div class="aggregation-header" onclick="toggleAggregationPanel()">
+            <span>메뉴별 집계 보기</span>
+            <span id="aggregationToggleIcon">▾</span>
+          </div>
+          <div class="aggregation-body" id="aggregationBody">
+            <div class="table-container" style="margin-top:0;">
+              <table class="aggregation-table">
+                <thead>
+                  <tr>
+                    <th>메뉴</th>
+                    <th>수량</th>
+                    <th>금액</th>
+                  </tr>
+                </thead>
+                <tbody id="aggregationTableBody"></tbody>
+                <tfoot>
+                  <tr>
+                    <td>합계</td>
+                    <td id="aggregationTotalQty">0</td>
+                    <td id="aggregationTotalAmount">0원</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <button class="btn btn-secondary" onclick="resetAllData()" style="background:#ff4757; margin-top:10px;">데이터 전체 초기화 🧹</button>
     </div>
@@ -345,20 +489,7 @@
 
       <div class="form-group">
         <label>메뉴 선택</label>
-        <div id="orderItemsContainer">
-          <div class="order-item-row">
-            <select id="drinkSelect" class="menu-select"></select>
-            <select id="drinkQty" class="menu-qty">
-              <option value="1">1개</option>
-              <option value="2">2개</option>
-              <option value="3">3개</option>
-              <option value="4">4개</option>
-              <option value="5">5개</option>
-            </select>
-            <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
-          </div>
-        </div>
-        <button type="button" class="btn btn-secondary" id="addOrderItemBtn" onclick="addOrderItemRow()" style="margin-top:8px; padding:8px; font-size:0.9rem;">항목 추가</button>
+        <div id="orderItemsContainer"></div>
       </div>
 
       <div style="display: flex; gap: 8px;">
@@ -397,6 +528,8 @@
     </div>
 
   </div>
+
+  <div class="toast" id="toastMessage">복사 완료</div>
 
   <!-- Firebase 및 앱 로직 스크립트 -->
   <script type="module">
@@ -512,89 +645,53 @@
     }
 
     function renderMenuOptions() {
-      const optionHtml = menus.map(menu => `<option value="${menu.id}">${menu.name} (${menu.price.toLocaleString()}원)</option>`).join('');
-      document.querySelectorAll('.menu-select').forEach(select => {
-        select.innerHTML = optionHtml;
-      });
-      syncOrderItemControls();
-    }
-
-    function syncOrderItemControls() {
-      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
-      rows.forEach((row) => {
-        const removeBtn = row.querySelector('.remove-item-btn');
-        if (removeBtn) {
-          removeBtn.style.display = rows.length > 1 ? 'block' : 'none';
-        }
-      });
-    }
-
-    function addOrderItemRow() {
       const container = document.getElementById('orderItemsContainer');
-      const row = document.createElement('div');
-      row.className = 'order-item-row';
-      row.innerHTML = `
-        <select class="menu-select"></select>
-        <select class="menu-qty">
-          <option value="1">1개</option>
-          <option value="2">2개</option>
-          <option value="3">3개</option>
-          <option value="4">4개</option>
-          <option value="5">5개</option>
-        </select>
-        <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
-      `;
-      container.appendChild(row);
-      renderMenuOptions();
+      if (!container) return;
+
+      container.innerHTML = '';
+      menus.forEach((menu) => {
+        const row = document.createElement('div');
+        row.className = 'order-item-row';
+        row.innerHTML = `
+          <div class="menu-label">${menu.name} (${menu.price.toLocaleString()}원)</div>
+          <div class="qty-control">
+            <button type="button" class="qty-btn" data-menu-id="${menu.id}" data-delta="-1">−</button>
+            <div class="qty-value" id="qty-${menu.id}">0</div>
+            <button type="button" class="qty-btn" data-menu-id="${menu.id}" data-delta="1">＋</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const menuId = parseInt(btn.getAttribute('data-menu-id'), 10);
+          const delta = parseInt(btn.getAttribute('data-delta'), 10);
+          updateMenuQty(menuId, delta);
+        });
+      });
     }
 
-    function removeCurrentOrderItemRow(button) {
-      const row = button.closest('.order-item-row');
-      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
-      if (row && rows.length > 1) {
-        row.remove();
-        syncOrderItemControls();
-      }
+    function updateMenuQty(menuId, delta) {
+      const qtyEl = document.getElementById(`qty-${menuId}`);
+      if (!qtyEl) return;
+      const currentQty = parseInt(qtyEl.textContent, 10) || 0;
+      const nextQty = Math.max(0, currentQty + delta);
+      qtyEl.textContent = nextQty;
     }
 
     function resetOrderItemRows() {
-      const container = document.getElementById('orderItemsContainer');
-      container.innerHTML = `
-        <div class="order-item-row">
-          <select id="drinkSelect" class="menu-select"></select>
-          <select id="drinkQty" class="menu-qty">
-            <option value="1">1개</option>
-            <option value="2">2개</option>
-            <option value="3">3개</option>
-            <option value="4">4개</option>
-            <option value="5">5개</option>
-          </select>
-          <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
-        </div>
-      `;
       renderMenuOptions();
     }
 
     function getSelectedOrderItems() {
-      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
-      const items = Array.from(rows).map((row) => {
-        const menuSelect = row.querySelector('.menu-select');
-        const qtySelect = row.querySelector('.menu-qty');
-        return {
-          menuId: parseInt(menuSelect?.value || '0', 10),
-          qty: parseInt(qtySelect?.value || '0', 10)
-        };
-      }).filter(item => item.menuId > 0 && item.qty > 0);
-
-      return items.reduce((acc, item) => {
-        const existing = acc.find(x => x.menuId === item.menuId);
-        if (existing) {
-          existing.qty += item.qty;
-        } else {
-          acc.push(item);
-        }
-        return acc;
-      }, []);
+      return menus
+        .map((menu) => {
+          const qtyEl = document.getElementById(`qty-${menu.id}`);
+          const qty = parseInt(qtyEl?.textContent || '0', 10);
+          return { menuId: menu.id, qty };
+        })
+        .filter(item => item.qty > 0);
     }
 
     function renderAdminMenuList() {
@@ -623,16 +720,12 @@
     function updateOrderFormState() {
       const isClosed = isOrderClosed();
       const nameInput = document.getElementById('ordererName');
-      const menuSelects = document.querySelectorAll('.menu-select');
-      const qtySelects = document.querySelectorAll('.menu-qty');
-      const addItemBtn = document.getElementById('addOrderItemBtn');
+      const qtyButtons = document.querySelectorAll('.qty-btn');
       const submitBtn = document.getElementById('submitBtn');
       const cancelEditBtn = document.getElementById('cancelEditBtn');
 
       nameInput.disabled = isClosed;
-      menuSelects.forEach(select => select.disabled = isClosed);
-      qtySelects.forEach(select => select.disabled = isClosed);
-      addItemBtn.disabled = isClosed;
+      qtyButtons.forEach(btn => btn.disabled = isClosed);
       submitBtn.disabled = isClosed;
       cancelEditBtn.disabled = isClosed;
 
@@ -662,6 +755,7 @@
       let totalQty = 0;
       let totalAmt = 0;
       const isClosed = isOrderClosed();
+      const aggMap = new Map();
 
       orders.forEach(order => {
         const menu = menus.find(m => m.id === parseInt(order.drinkId)) || { name: '삭제된 메뉴', price: 0 };
@@ -669,6 +763,14 @@
 
         totalQty += order.qty;
         totalAmt += sumPrice;
+
+        const aggKey = menu.name;
+        if (!aggMap.has(aggKey)) {
+          aggMap.set(aggKey, { name: menu.name, qty: 0, amount: 0 });
+        }
+        const aggItem = aggMap.get(aggKey);
+        aggItem.qty += order.qty;
+        aggItem.amount += sumPrice;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -687,6 +789,25 @@
 
       document.getElementById('totalQty').textContent = totalQty;
       document.getElementById('totalAmount').textContent = totalAmt.toLocaleString() + '원';
+
+      const aggBody = document.getElementById('aggregationTableBody');
+      aggBody.innerHTML = '';
+      let aggTotalQty = 0;
+      let aggTotalAmount = 0;
+      aggMap.forEach((item) => {
+        aggTotalQty += item.qty;
+        aggTotalAmount += item.amount;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>${item.amount.toLocaleString()}원</td>
+        `;
+        aggBody.appendChild(row);
+      });
+      document.getElementById('aggregationTotalQty').textContent = aggTotalQty;
+      document.getElementById('aggregationTotalAmount').textContent = aggTotalAmount.toLocaleString() + '원';
+
       updateOrderFormState();
     }
 
@@ -795,7 +916,7 @@
       }
 
       if (editingOrderId !== null) {
-        // [수정 모드] 기존 DB 데이터 업데이트
+        // 수정 모드는 첫 번째 선택 항목만 반영하도록 유지
         const item = selectedItems[0];
         update(ref(db, dbPath('orders', String(editingOrderId))), {
           name: name,
@@ -804,7 +925,6 @@
         });
         cancelEdit();
       } else {
-        // [추가 모드] 동일 주문자+동일 메뉴가 있다면 합산, 아니면 새로 push
         selectedItems.forEach(item => {
           const existingOrder = orders.find(o => o.name === name && o.drinkId === item.menuId);
           if(existingOrder) {
@@ -839,10 +959,9 @@
 
       resetOrderItemRows();
       document.getElementById('ordererName').value = order.name;
-      const firstRow = document.querySelector('#orderItemsContainer .order-item-row');
-      if (firstRow) {
-        firstRow.querySelector('.menu-select').value = order.drinkId;
-        firstRow.querySelector('.menu-qty').value = order.qty;
+      const qtyEl = document.getElementById(`qty-${order.drinkId}`);
+      if (qtyEl) {
+        qtyEl.textContent = order.qty;
       }
 
       document.getElementById('formTitle').textContent = "✏️ 주문 수정하기";
@@ -878,6 +997,32 @@
       }
     }
 
+    function copyAccountNumber() {
+      const accountText = '카카오 3333-09-3143695 김성현';
+      navigator.clipboard.writeText(accountText).then(() => {
+        showToast('계좌번호가 복사되었습니다.');
+      }).catch(() => {
+        showToast('복사에 실패했습니다.');
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toastMessage');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timeoutId);
+      showToast.timeoutId = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 1800);
+    }
+
+    function toggleAggregationPanel() {
+      const body = document.getElementById('aggregationBody');
+      const icon = document.getElementById('aggregationToggleIcon');
+      const isOpen = body.classList.toggle('open');
+      icon.textContent = isOpen ? '▴' : '▾';
+    }
+
     // 전체 초기화 (새 게임 시작 시)
     function resetAllData() {
       if(confirm("모든 주문, 마감 시간, 메뉴를 기본값으로 초기화하시겠습니까?")) {
@@ -899,6 +1044,8 @@
     // --- HTML 엘리먼트 onclick 연동을 위한 전역 스코프 바인딩 ---
     window.toggleAdminPanel = toggleAdminPanel;
     window.checkAdminAccess = checkAdminAccess;
+    window.copyAccountNumber = copyAccountNumber;
+    window.toggleAggregationPanel = toggleAggregationPanel;
     window.addNewMenu = addNewMenu;
     window.updateMenuName = updateMenuName;
     window.updateMenuPrice = updateMenuPrice;
