@@ -184,6 +184,28 @@
       margin-bottom: 5px;
     }
 
+    .order-item-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .order-item-row .menu-select,
+    .order-item-row .menu-qty {
+      flex: 1;
+    }
+
+    .remove-item-btn {
+      width: 44px;
+      padding: 10px 0;
+      font-size: 0.95rem;
+      border-radius: 12px;
+      background: #f1f2f6;
+      color: #666;
+      box-shadow: none;
+    }
+
     /* 마감 타이머 */
     .timer-display {
       background: #fff;
@@ -323,18 +345,20 @@
 
       <div class="form-group">
         <label>메뉴 선택</label>
-        <select id="drinkSelect"></select>
-      </div>
-
-      <div class="form-group">
-        <label>수량</label>
-        <select id="drinkQty">
-          <option value="1">1개</option>
-          <option value="2">2개</option>
-          <option value="3">3개</option>
-          <option value="4">4개</option>
-          <option value="5">5개</option>
-        </select>
+        <div id="orderItemsContainer">
+          <div class="order-item-row">
+            <select id="drinkSelect" class="menu-select"></select>
+            <select id="drinkQty" class="menu-qty">
+              <option value="1">1개</option>
+              <option value="2">2개</option>
+              <option value="3">3개</option>
+              <option value="4">4개</option>
+              <option value="5">5개</option>
+            </select>
+            <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary" id="addOrderItemBtn" onclick="addOrderItemRow()" style="margin-top:8px; padding:8px; font-size:0.9rem;">항목 추가</button>
       </div>
 
       <div style="display: flex; gap: 8px;">
@@ -488,14 +512,89 @@
     }
 
     function renderMenuOptions() {
-      const select = document.getElementById('drinkSelect');
-      select.innerHTML = '';
-      menus.forEach(menu => {
-        const option = document.createElement('option');
-        option.value = menu.id;
-        option.textContent = `${menu.name} (${menu.price.toLocaleString()}원)`;
-        select.appendChild(option);
+      const optionHtml = menus.map(menu => `<option value="${menu.id}">${menu.name} (${menu.price.toLocaleString()}원)</option>`).join('');
+      document.querySelectorAll('.menu-select').forEach(select => {
+        select.innerHTML = optionHtml;
       });
+      syncOrderItemControls();
+    }
+
+    function syncOrderItemControls() {
+      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
+      rows.forEach((row) => {
+        const removeBtn = row.querySelector('.remove-item-btn');
+        if (removeBtn) {
+          removeBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        }
+      });
+    }
+
+    function addOrderItemRow() {
+      const container = document.getElementById('orderItemsContainer');
+      const row = document.createElement('div');
+      row.className = 'order-item-row';
+      row.innerHTML = `
+        <select class="menu-select"></select>
+        <select class="menu-qty">
+          <option value="1">1개</option>
+          <option value="2">2개</option>
+          <option value="3">3개</option>
+          <option value="4">4개</option>
+          <option value="5">5개</option>
+        </select>
+        <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
+      `;
+      container.appendChild(row);
+      renderMenuOptions();
+    }
+
+    function removeCurrentOrderItemRow(button) {
+      const row = button.closest('.order-item-row');
+      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
+      if (row && rows.length > 1) {
+        row.remove();
+        syncOrderItemControls();
+      }
+    }
+
+    function resetOrderItemRows() {
+      const container = document.getElementById('orderItemsContainer');
+      container.innerHTML = `
+        <div class="order-item-row">
+          <select id="drinkSelect" class="menu-select"></select>
+          <select id="drinkQty" class="menu-qty">
+            <option value="1">1개</option>
+            <option value="2">2개</option>
+            <option value="3">3개</option>
+            <option value="4">4개</option>
+            <option value="5">5개</option>
+          </select>
+          <button type="button" class="btn remove-item-btn" onclick="removeCurrentOrderItemRow(this)">✕</button>
+        </div>
+      `;
+      renderMenuOptions();
+    }
+
+    function getSelectedOrderItems() {
+      const rows = document.querySelectorAll('#orderItemsContainer .order-item-row');
+      const items = Array.from(rows).map((row) => {
+        const menuSelect = row.querySelector('.menu-select');
+        const qtySelect = row.querySelector('.menu-qty');
+        return {
+          menuId: parseInt(menuSelect?.value || '0', 10),
+          qty: parseInt(qtySelect?.value || '0', 10)
+        };
+      }).filter(item => item.menuId > 0 && item.qty > 0);
+
+      return items.reduce((acc, item) => {
+        const existing = acc.find(x => x.menuId === item.menuId);
+        if (existing) {
+          existing.qty += item.qty;
+        } else {
+          acc.push(item);
+        }
+        return acc;
+      }, []);
     }
 
     function renderAdminMenuList() {
@@ -524,14 +623,16 @@
     function updateOrderFormState() {
       const isClosed = isOrderClosed();
       const nameInput = document.getElementById('ordererName');
-      const drinkSelect = document.getElementById('drinkSelect');
-      const qtySelect = document.getElementById('drinkQty');
+      const menuSelects = document.querySelectorAll('.menu-select');
+      const qtySelects = document.querySelectorAll('.menu-qty');
+      const addItemBtn = document.getElementById('addOrderItemBtn');
       const submitBtn = document.getElementById('submitBtn');
       const cancelEditBtn = document.getElementById('cancelEditBtn');
 
       nameInput.disabled = isClosed;
-      drinkSelect.disabled = isClosed;
-      qtySelect.disabled = isClosed;
+      menuSelects.forEach(select => select.disabled = isClosed);
+      qtySelects.forEach(select => select.disabled = isClosed);
+      addItemBtn.disabled = isClosed;
       submitBtn.disabled = isClosed;
       cancelEditBtn.disabled = isClosed;
 
@@ -679,44 +780,50 @@
       }
 
       const nameInput = document.getElementById('ordererName');
-      const drinkSelect = document.getElementById('drinkSelect');
-      const qtySelect = document.getElementById('drinkQty');
 
       const name = nameInput.value.trim();
-      const menuId = parseInt(drinkSelect.value);
-      const qty = parseInt(qtySelect.value);
+      const selectedItems = getSelectedOrderItems();
 
       if(!name) {
         alert('주문자 이름을 입력해주세요!');
         return;
       }
 
+      if (selectedItems.length === 0) {
+        alert('메뉴를 하나 이상 선택해주세요!');
+        return;
+      }
+
       if (editingOrderId !== null) {
         // [수정 모드] 기존 DB 데이터 업데이트
+        const item = selectedItems[0];
         update(ref(db, dbPath('orders', String(editingOrderId))), {
           name: name,
-          drinkId: menuId,
-          qty: qty
+          drinkId: item.menuId,
+          qty: item.qty
         });
         cancelEdit();
       } else {
         // [추가 모드] 동일 주문자+동일 메뉴가 있다면 합산, 아니면 새로 push
-        const existingOrder = orders.find(o => o.name === name && o.drinkId === menuId);
-        if(existingOrder) {
-          update(ref(db, dbPath('orders', String(existingOrder.id))), {
-            qty: existingOrder.qty + qty
-          });
-        } else {
-          const newOrderRef = push(ref(db, dbPath('orders')));
-          set(newOrderRef, {
-            name,
-            drinkId: menuId,
-            qty
-          });
-        }
+        selectedItems.forEach(item => {
+          const existingOrder = orders.find(o => o.name === name && o.drinkId === item.menuId);
+          if(existingOrder) {
+            update(ref(db, dbPath('orders', String(existingOrder.id))), {
+              qty: existingOrder.qty + item.qty
+            });
+          } else {
+            const newOrderRef = push(ref(db, dbPath('orders')));
+            set(newOrderRef, {
+              name,
+              drinkId: item.menuId,
+              qty: item.qty
+            });
+          }
+        });
       }
 
       nameInput.value = '';
+      resetOrderItemRows();
     }
 
     function startEditOrder(id) {
@@ -730,9 +837,13 @@
 
       editingOrderId = id;
 
+      resetOrderItemRows();
       document.getElementById('ordererName').value = order.name;
-      document.getElementById('drinkSelect').value = order.drinkId;
-      document.getElementById('drinkQty').value = order.qty;
+      const firstRow = document.querySelector('#orderItemsContainer .order-item-row');
+      if (firstRow) {
+        firstRow.querySelector('.menu-select').value = order.drinkId;
+        firstRow.querySelector('.menu-qty').value = order.qty;
+      }
 
       document.getElementById('formTitle').textContent = "✏️ 주문 수정하기";
       document.getElementById('submitBtn').textContent = "주문 수정 완료 💾";
@@ -745,8 +856,7 @@
     function cancelEdit() {
       editingOrderId = null;
       document.getElementById('ordererName').value = '';
-      document.getElementById('drinkSelect').selectedIndex = 0;
-      document.getElementById('drinkQty').value = '1';
+      resetOrderItemRows();
 
       document.getElementById('formTitle').textContent = "✏️ 메뉴 주문하기";
       document.getElementById('submitBtn').textContent = "주문 추가하기 🥳";
